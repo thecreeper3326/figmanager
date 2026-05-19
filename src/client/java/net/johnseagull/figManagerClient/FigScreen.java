@@ -94,135 +94,72 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
                                 try {
                                     Field v = FigManager.FIGS.getClass().getField(s);
                                     Object vv = v.get(FigManager.FIGS);
-                                    if (vv instanceof Fig.IntFig k) {
-                                        k.inGroup = true;
-                                        EditBox box;
-                                        StringWidget label;
+                                    EditBox box;
+                                    StringWidget label = null;
+                                    if (vv instanceof Fig k ) {
                                         if (t.hL) {
                                             label = new StringWidget(wx + (widthOfTheWidgetw + 5), y + 22, w - widthOfTheWidgetw - 5, 20, Component.literal(k.name), font);
-                                            box = new EditBox(font, wx, wr + 22, widthOfTheWidgetw, 20, Component.literal("int%"+f.getName()));
-                                        } else {
+                                       } else {
                                             label = new StringWidget(wx, y + 22, w - 5, 20, Component.literal(k.name), font);
-                                            box = new EditBox(font, wx, y + 44, min(w -10, width-20), 20, Component.literal("int%"+f.getName()));
                                         }
                                         label.setTooltip(Tooltip.create(Component.literal(k.description)));
                                         this.addRenderableWidget(label);
-                                        box.setMaxLength(1024);
-                                        box.setValue(String.valueOf(k.value));
-
-                                        box.setResponder(e -> {
-                                            try {
-                                                if (Integer.parseInt(box.getValue()) > k.max || Integer.parseInt(box.getValue()) < k.min) {
-                                                    box.setTextColor(0xFFFF2020);
-                                                    if (!thingsKeepingYouFromSaving.contains(f.getName())) {
-                                                        thingsKeepingYouFromSaving.add(f.getName());
-                                                    }
-                                                } else {
-                                                    box.setTextColor(0xFFFFFFFF);
-                                                    thingsKeepingYouFromSaving.remove(f.getName());
-                                                }
-                                            } catch (NumberFormatException ex) {
-                                                box.setTextColor(0xFFFF2020);
+                                        if (k.widgetType.equals("box")) {
+                                            if (t.hL) {
+                                                box = new EditBox(font, wx, wr + 22, widthOfTheWidgetw, 20, Component.literal(k.dataType+f.getName()));
+                                            } else {
+                                                box = new EditBox(font, wx, y + 44, min(w -10, width-20), 20, Component.literal(k.dataType+f.getName()));
                                             }
-                                        });
-                                        this.addRenderableWidget(box);
+                                            box.setMaxLength(1024);
+                                           
+
+                                            this.addRenderableWidget(box);
+                                        } else {
+                                            box = null;
+                                        }
+                                    } else {
+                                        box = null;
+                                    }
+
+                                    if (vv instanceof Fig.IntFig k) {
+                                        k.inGroup = true;
+                                        assert box != null;
+                                        box.setValue(String.valueOf(k.value));
+                                        setResponder(box,"int",k.min,k.max,f.getName());
                                         coolListOfOptionWidgets.add((T) box);
                                     }
                                     if (vv instanceof Fig.FloatFig k) {
                                         k.inGroup = true;
-                                        EditBox box;
-                                        StringWidget label;
-                                        if (t.hL) {
-                                            label = new StringWidget(wx + (widthOfTheWidgetw + 5), y + 22, w - widthOfTheWidgetw - 5, 20, Component.literal(k.name), font);
-                                            box = new EditBox(font, wx, wr + 22, widthOfTheWidgetw, 20, Component.literal("float%"+f.getName()));
-                                        } else {
-                                            label = new StringWidget(wx, y + 22, w - 5, 20, Component.literal(k.name), font);
-                                            box = new EditBox(font, wx, y + 44, min(w -10, width-20), 20, Component.literal("float%"+f.getName()));
-                                        }
-                                        label.setTooltip(Tooltip.create(Component.literal(k.description)));
-                                        this.addRenderableWidget(label);
-                                        box.setMaxLength(1024);
+                                        assert box != null;
                                         box.setValue(String.valueOf(k.value));
-
-                                        box.setResponder(e -> {
-                                            try {
-                                                if (Float.parseFloat(box.getValue()) > k.max || Float.parseFloat(box.getValue()) < k.min) {
-                                                    box.setTextColor(0xFFFF2020);
-                                                    if (!thingsKeepingYouFromSaving.contains(f.getName())) {
-                                                        thingsKeepingYouFromSaving.add(f.getName());
-                                                    }
-                                                } else {
-                                                    box.setTextColor(0xFFFFFFFF);
-                                                    thingsKeepingYouFromSaving.remove(f.getName());
-                                                }
-                                            } catch (NumberFormatException ex) {
-                                                box.setTextColor(0xFFFF2020);
-                                            }
-                                        });
-                                        this.addRenderableWidget(box);
+                                        setResponder(box,"float",k.min,k.max,f.getName());
                                         coolListOfOptionWidgets.add((T) box);
 
                                     }
                                     if (vv instanceof Fig.BooleanFig k) {
                                         k.inGroup = true;
                                         FigCheckbox toggle;
+                                        toggle = FigCheckbox.builder(Component.literal(f.getName()), font).selected(k.value).maxWidth(widthOfTheWidgetw - 5).build();
+                                        toggle.setX(wx);
                                         if (t.hL) {
-                                            StringWidget label = new StringWidget(wx + (widthOfTheWidgetw + 5), y + 22, w - widthOfTheWidgetw - 5, 20, Component.literal(k.name), font);
-                                            this.addRenderableWidget(label);
-                                            label.setTooltip(Tooltip.create(Component.literal(k.description)));
-                                            toggle = FigCheckbox.builder(Component.literal(f.getName()), font).selected(k.value).maxWidth(widthOfTheWidgetw - 5).build();
-                                            toggle.setX(wx);
-                                           
                                             toggle.setY(y + 22);
                                         } else {
-                                            StringWidget label = new StringWidget(wx, y + 22, w - 5, 20, Component.literal(k.name), font);
-                                            this.addRenderableWidget(label);
-                                            label.setTooltip(Tooltip.create(Component.literal(k.description)));
-                                            toggle = FigCheckbox.builder(Component.literal(f.getName()), font).selected(k.value).maxWidth(widthOfTheWidgetw - 5).build();
-                                            toggle.setX(wx);
                                             toggle.setY(y + 44);
                                         }
-
                                         toggle.w = widthOfTheWidgetw;
                                         coolListOfOptionWidgets.add((T) toggle);
                                         this.addRenderableWidget(toggle);
                                     }
                                     if (vv instanceof Fig.StringFig k) {
                                         k.inGroup = true;
-                                        EditBox box;
-                                        StringWidget label;
-                                        if (t.hL) {
-                                            label = new StringWidget(wx + (widthOfTheWidgetw + 5), y + 22, w - widthOfTheWidgetw - 5, 20, Component.literal(k.name), font);
-                                            box = new EditBox(font, wx, wr + 22, widthOfTheWidgetw, 20, Component.literal("string%"+f.getName()));
-                                        } else {
-                                            label = new StringWidget(wx, y + 22, w -10, 20, Component.literal(k.name), font);
-                                            box = new EditBox(font, wx, y + 44, min(w -10, width-20), 20, Component.literal("string%"+f.getName()));
-                                        }
-                                        label.setTooltip(Tooltip.create(Component.literal(k.description)));
-                                        this.addRenderableWidget(label);
-                                        box.setMaxLength(1024);
+                                        assert box != null;
                                         box.setValue(k.value);
-                                        EditBox boxCopy = box;
-                                        box.setResponder(e -> {
-                                            if (e.length() > k.max) {
-                                                boxCopy.setTextColor(0xFFFF2020);
-                                                if (!thingsKeepingYouFromSaving.contains(f.getName())) {
-                                                    thingsKeepingYouFromSaving.add(f.getName());
-                                                }
-                                            } else {
-                                                boxCopy.setTextColor(0xFFFFFFFF);
-                                                if (thingsKeepingYouFromSaving.contains(f.getName())) {
-                                                    thingsKeepingYouFromSaving.add(f.getName());
-                                                }
-                                            }
-                                        });
-                                        box.setMessage(Component.literal(field.getName()));
+                                        setResponder(box,"string",0,k.max,f.getName());
                                         coolListOfOptionWidgets.add((T) box);
-                                        this.addRenderableWidget(box);
                                     }
 
                                 } catch (Exception e) {
-
+                                    clientLogger.debug(e.getMessage());
                                 }
                             }
 
@@ -280,24 +217,8 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
                         y += 22;
                         EditBox box = new EditBox(font, x, y, round(widthOfTheWidget), 20, Component.literal(field.getName()));
                         box.setValue(String.valueOf(t.value));
-                        box.setMessage(Component.literal("int%"+field.getName()));
-                        box.setResponder(e -> {
-                            try {
-                                if (Integer.parseInt(box.getValue()) > t.max || Integer.parseInt(box.getValue()) < t.min) {
-                                    box.setTextColor(0xFFFF2020);
-                                    if (!thingsKeepingYouFromSaving.contains(field.getName())) {
-                                        thingsKeepingYouFromSaving.add(field.getName());
-                                    }
-                                } else {
-                                    box.setTextColor(0xFFFFFFFF);
-                                    if (thingsKeepingYouFromSaving.contains(field.getName())) {
-                                        thingsKeepingYouFromSaving.remove(field.getName());
-                                    }
-                                }
-                            } catch (NumberFormatException ex) {
-                                box.setTextColor(0xFFFF2020);
-                            }
-                        });
+                        box.setMessage(Component.literal(t.dataType+field.getName()));
+                        setResponder(box,"int",t.min,t.max,field.getName());
                         coolListOfOptionWidgets.add((T) box);
                         this.addRenderableWidget(box);
                         amountOfWidgetsOnScreen++;
@@ -309,25 +230,8 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
                         y += 22;
                         EditBox box = new EditBox(font, x, y, round(widthOfTheWidget), 20, Component.literal(field.getName()));
                         box.setValue(String.valueOf(t.value));
-                        box.setMessage(Component.literal("float%"+field.getName()));
-                        box.setResponder(e -> {
-                            try {
-                                if (Float.parseFloat(box.getValue()) > t.max || Float.parseFloat(box.getValue()) < t.min) {
-                                    box.setTextColor(0xFFFF2020);
-                                    if (!thingsKeepingYouFromSaving.contains(field.getName())) {
-                                        thingsKeepingYouFromSaving.add(field.getName());
-                                    }
-                                } else {
-                                    box.setTextColor(0xFFFFFFFF);
-                                    if (thingsKeepingYouFromSaving.contains(field.getName())) {
-                                        thingsKeepingYouFromSaving.remove(field.getName());
-                                    }
-                                }
-                            } catch (NumberFormatException ex) {
-                                box.setTextColor(0xFFFF4040);
-                            }
-                        });
-
+                        box.setMessage(Component.literal(t.dataType+field.getName()));
+                        setResponder(box,"float",t.min,t.max,field.getName());
                         coolListOfOptionWidgets.add((T) box);
                         this.addRenderableWidget(box);
                         amountOfWidgetsOnScreen++;
@@ -354,25 +258,16 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
                         EditBox box = new EditBox(font, x, y, round(widthOfTheWidget), 20, Component.literal(field.getName()));
                         box.setMaxLength(1024);
                         box.setValue(t.value);
-                        box.setResponder(e -> {
-                            if (e.length() > t.max) {
-                                box.setTextColor(0xFFFF2020);
-                                if (!thingsKeepingYouFromSaving.contains(field.getName())) {
-                                    thingsKeepingYouFromSaving.add(field.getName());
-                                }
-                            } else {
-                                box.setTextColor(0xFFFFFFFF);
-                                if (thingsKeepingYouFromSaving.contains(field.getName())) {
-                                    thingsKeepingYouFromSaving.remove(field.getName());
-                                }
-                            }
-                        });
-                        box.setMessage(Component.literal("string%"+field.getName()));
+                        setResponder(box,"string",0,t.max,field.getName());
+                        box.setMessage(Component.literal(t.dataType+field.getName()));
                         this.addRenderableWidget(box);
                         coolListOfOptionWidgets.add((T) box);
                         addLabel(t,y);
                         amountOfWidgetsOnScreen++;
                     }
+                }
+                {
+                    //map + list figs are a work in progress and are super broken at the moment
                 }
 //                if (value instanceof Fig.MapFig t) {
 //                    Map<String, Object> tempV;
@@ -521,15 +416,65 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
 //
 //                    amountOfWidgetsOnScreen += t.dispLength+2;
 //                    this.addRenderableWidget(a);
-//                }
-
-
+//                
+                
             }
         }
 
 
     }
+    public void setResponder(EditBox box, String type, Object min, Object max, String name) {
+        box.setResponder(e -> {
 
+            try {
+                if (type.equals("int")) {
+                    int intMin = (int) min;
+                    int intMax = (int) max;
+                    if (Integer.parseInt(box.getValue()) > intMax || Integer.parseInt(box.getValue()) < intMin) {
+                        box.setTextColor(0xFFFF2020);
+                        if (!thingsKeepingYouFromSaving.contains(name)) {
+                            thingsKeepingYouFromSaving.add(name);
+                        }
+                    } else {
+                        box.setTextColor(0xFFFFFFFF);
+                        thingsKeepingYouFromSaving.remove(name);
+                    }
+                }
+                if (type.equals("float")) {
+                    float floatMin = (float) min;
+                    float floatMax = (float) max;
+                    if (Float.parseFloat(box.getValue()) > floatMax || Float.parseFloat(box.getValue()) < floatMin) {
+                        box.setTextColor(0xFFFF2020);
+                        if (!thingsKeepingYouFromSaving.contains(name)) {
+                            thingsKeepingYouFromSaving.add(name);
+                        }
+                    } else {
+                        box.setTextColor(0xFFFFFFFF);
+                        thingsKeepingYouFromSaving.remove(name);
+                    }
+                }
+                if (type.equals("string")) {
+                    int stringMax = (int) max;
+                    box.setResponder(s -> {
+                        if (s.length() > stringMax) {
+                            box.setTextColor(0xFFFF2020);
+                            if (!thingsKeepingYouFromSaving.contains(name)) {
+                                thingsKeepingYouFromSaving.add(name);
+                            }
+                        } else {
+                            box.setTextColor(0xFFFFFFFF);
+                            if (thingsKeepingYouFromSaving.contains(name)) {
+                                thingsKeepingYouFromSaving.add(name);
+                            }
+                        }
+                    });
+                }
+
+            } catch (Exception ex) {
+                box.setTextColor(0xFFFF2020);
+            }
+        });
+    }
     public void addLabel(Fig t, int y) {
         StringWidget label = new StringWidget(round(widthOfTheWidget) + 10, y, width - round(widthOfTheWidget) - 30, 20, Component.literal(t.name), font);
         label.setTooltip(Tooltip.create(Component.literal(t.description)));
@@ -585,15 +530,15 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
                         try {
                             String msg = option.getMessage().getString();
 
-                            if (value instanceof Fig.IntFig f && msg.equals("int%" + field.getName())) {
+                            if (value instanceof Fig.IntFig f && msg.equals(f.dataType + field.getName())) {
                                 setFieldValue(field, FigManager.FIGS, new Fig.IntFig(f.name, f.description, Integer.parseInt(((EditBox) option).getValue()), f.min, f.max));
                                 break;
                             }
-                            if (value instanceof Fig.FloatFig f && msg.equals("float%" + field.getName())) {
+                            if (value instanceof Fig.FloatFig f && msg.equals(f.dataType + field.getName())) {
                                 setFieldValue(field, FigManager.FIGS, new Fig.FloatFig(f.name, f.description, Float.parseFloat(((EditBox) option).getValue()), f.min, f.max));
                                 break;
                             }
-                            if (value instanceof Fig.StringFig f && msg.equals("string%" + field.getName())) {
+                            if (value instanceof Fig.StringFig f && msg.equals(f.dataType + field.getName())) {
                                 setFieldValue(field, FigManager.FIGS, new Fig.StringFig(f.name, f.description, ((EditBox) option).getValue(), f.max));
                                 break;
                             }

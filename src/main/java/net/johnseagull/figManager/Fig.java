@@ -19,9 +19,11 @@ import java.util.Map;
 public class Fig {
     //generic properties for other figs
     public String name = "";
+    public String widgetType = "";
     public String description = "";
     public Boolean inGroup = false;
     public String id = "";
+    public String dataType = "";
     //can be used to quickly store custom data so i dont have to rewrite the classes
     public Map<String, Object> customData = new HashMap<>();
 
@@ -40,7 +42,8 @@ public class Fig {
          * @param max Maximum value
          * */
             public IntFig(String name, String description, int value, int min, int max) {
-
+                this.widgetType = "box";
+                this.dataType = "int_";
                 this.name = name;
                 this.description = description;
                 this.value = value;
@@ -65,6 +68,8 @@ public class Fig {
             this.name = name;
             this.description = description;
             this.max = max;
+            this.widgetType = "box";
+            this.dataType = "string_";
         }
     }
 
@@ -81,6 +86,8 @@ public class Fig {
             this.value = value;
             this.name = name;
             this.description = description;
+            this.widgetType = "check";
+            this.dataType = "boolean_";
 
         }
     }
@@ -104,6 +111,8 @@ public class Fig {
                 this.value = value;
                 this.min = min;
                 this.max = max;
+                this.widgetType = "box";
+                this.dataType = "float_";
             }
         }
 
