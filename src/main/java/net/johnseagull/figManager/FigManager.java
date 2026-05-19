@@ -29,7 +29,7 @@ import static org.apache.logging.log4j.core.util.ReflectionUtil.setFieldValue;
  */
 public class FigManager {
 
-    private static Logger LOGGER = LoggerFactory.getLogger("CreeperDev FigManager");
+    private static final Logger LOGGER = LoggerFactory.getLogger("JohnSeagull FigManager");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     public static Object FIGS;
     public static Class<?> FIGCLASS;
@@ -56,7 +56,71 @@ public class FigManager {
             LOGGER.error(e.getMessage());
         }
     }
+    public static void genInfo() {
+        Object defaults;
+        try {
+            defaults = FIGCLASS.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            LOGGER.error("uhuh... smth bad happen :(");
+            LOGGER.error(e.getMessage());
+            return;
+        }
+        File file = new File("config/" + name + "/info.txt");
+        StringBuilder temp = new StringBuilder();
+        temp.append(name+" version: "+version+"\n\n");
+        temp.append("CONFIGURATION GUIDE");
+        temp.append("\n");
+        temp.append("This text file is a reference for editing the mod's configuration outside the game.\nThis is NOT the configuration file, use config/"+name+"figs.json instead.");
+        temp.append("\n\n");
+        for (Field field : defaults.getClass().getFields()) {
+            try {
+                if (Modifier.isStatic(field.getModifiers())) continue;
 
+                Object f = field.get(defaults);
+                if (f instanceof Fig.IntFig t) {
+                    temp.append(field.getName()+"\n");
+                    temp.append(t.name+" - Integer\n");
+                    temp.append(t.description+"\n");
+                    temp.append("Default value: "+t.value+"\n");
+                    temp.append("Range: "+t.min+"-"+t.max+"\n");
+                    temp.append("\n");
+                }
+                if (f instanceof Fig.FloatFig t) {
+                    temp.append(field.getName()+"\n");
+                    temp.append(t.name+" - Float\n");
+                    temp.append(t.description+"\n");
+                    temp.append("Default value: "+t.value+"\n");
+                    temp.append("Range: "+t.min+"-"+t.max+"\n");
+                    temp.append("\n");
+                }
+                if (f instanceof Fig.StringFig t) {
+                    temp.append(field.getName()+"\n");
+                    temp.append(t.name+" - String\n");
+                    temp.append(t.description+"\n");
+                    temp.append("Default value: "+t.value+"\n");
+                    temp.append("Max length: "+t.max+"\n");
+                    temp.append("\n");
+                }
+                if (f instanceof Fig.BooleanFig t) {
+                    temp.append(field.getName()+"\n");
+                    temp.append(t.name+" - Boolean\n");
+                    temp.append(t.description+"\n");
+                    temp.append("Default value: "+t.value+"\n");
+                    temp.append("\n");
+                }
+
+
+            } catch (Exception ignored) {}
+        }
+        try {
+            file.getParentFile().mkdirs();
+            try (FileWriter writer = new FileWriter(file)) {
+                writer.write(temp.toString());
+            }
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage());
+        }
+    }
     /**
      * Loads the configuration for the given project
      * @param projectName
@@ -87,13 +151,19 @@ public class FigManager {
      * */
     public void init(String projectName,String projectVersion, Object figs) {
 
-        LOGGER.info("Initializing figs for project: " + projectName);
+        LOGGER.info("Initializing figs for project: " + projectName + " v"+ projectVersion);
         name = projectName;
         version = projectVersion;
 
         FIGS = figs;
 
         FIGCLASS = figs.getClass();
+
+
+        File infoFile = new File("config/" + projectName + "/info.txt");
+        if (!infoFile.exists()) {
+            genInfo();
+        }
         load(name);
         try {
             Method initMethod = figs.getClass().getDeclaredMethod("init");
@@ -117,7 +187,6 @@ public class FigManager {
 
         PayloadTypeRegistry.serverboundPlay().register(FigPacket.ID, FigPacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(FigPacket.ID, FigPacket.CODEC);
-        save(name);
         ServerPlayNetworking.registerGlobalReceiver(FigPacket.ID, (payload, context) -> {
             context.server().execute(() -> {
                 LOGGER.warn("Received figs from client "+ context.player().getPlainTextName()+". Verifying...");
@@ -160,7 +229,7 @@ public class FigManager {
             ));
             LOGGER.info("Syncing figs for player " + player.getPlainTextName());
         });
-        LOGGER.info("Initialized FigManager");
+        LOGGER.info("Initialized for "+projectName);
     }
 
     /**
