@@ -70,7 +70,7 @@ public class FigManager {
         temp.append(name+" version: "+version+"\n\n");
         temp.append("CONFIGURATION GUIDE");
         temp.append("\n");
-        temp.append("This text file is a reference for editing the mod's configuration outside the game.\nThis is NOT the configuration file, use config/"+name+"figs.json instead.");
+        temp.append("This text file is a reference for editing the mod's configuration outside the game.\nThis is NOT the configuration file, use config/"+name+"/figs.json instead.");
         temp.append("\n\n");
         for (Field field : defaults.getClass().getFields()) {
             try {
@@ -82,7 +82,7 @@ public class FigManager {
                     temp.append(t.name+" - Integer\n");
                     temp.append(t.description+"\n");
                     temp.append("Default value: "+t.value+"\n");
-                    temp.append("Range: "+t.min+"-"+t.max+"\n");
+                    temp.append("Range: "+t.min+" to "+t.max+"\n");
                     temp.append("\n");
                 }
                 if (f instanceof Fig.FloatFig t) {
@@ -90,7 +90,7 @@ public class FigManager {
                     temp.append(t.name+" - Float\n");
                     temp.append(t.description+"\n");
                     temp.append("Default value: "+t.value+"\n");
-                    temp.append("Range: "+t.min+"-"+t.max+"\n");
+                    temp.append("Range: "+t.min+" to "+t.max+"\n");
                     temp.append("\n");
                 }
                 if (f instanceof Fig.StringFig t) {
