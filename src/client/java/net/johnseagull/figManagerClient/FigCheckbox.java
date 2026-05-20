@@ -28,6 +28,13 @@ public class FigCheckbox extends AbstractButton {
     private static final Identifier CHECKBOX_SPRITE = Identifier.withDefaultNamespace("widget/checkbox");
     private static final int SPACING = 4;
     private static final int BOX_PADDING = 8;
+    public int col1 = 0x00000000;
+    public int col2 = 0x00000000;
+    public int bdr1 = 0x00000000;
+    public int bdr2 = 0x00000000;
+    public int bdr = 2;
+    int col1b = new java.awt.Color(col1, true).brighter().getRGB();
+    int col2b = new java.awt.Color(col2, true).brighter().getRGB();
     private boolean selected;
     private final FigCheckbox.OnValueChange onValueChange;
     private MultiLineTextWidget textWidget;
@@ -44,6 +51,7 @@ public class FigCheckbox extends AbstractButton {
         this.selected = selected;
         this.onValueChange = onValueChange;
         this.font = font;
+
     }
 
     public int adjustWidth(final int maxWidth, final Font font) {
@@ -109,14 +117,25 @@ public class FigCheckbox extends AbstractButton {
         if (w < 44) {
             textWidget = new MultiLineTextWidget(Component.literal(""), font);
         }
-        if (this.selected) {
-            sprite = this.isFocused() ? CHECKBOX_SELECTED_HIGHLIGHTED_SPRITE :CHECKBOX_SELECTED_SPRITE;
-        } else {
-            sprite = this.isFocused() ? CHECKBOX_HIGHLIGHTED_SPRITE : CHECKBOX_SPRITE;
-        }
+        int tempcol1;
+        int tempcol2;
+        int col1b = new java.awt.Color(col1, true).brighter().getRGB();
+        int col2b = new java.awt.Color(col2, true).brighter().getRGB();
 
-        int boxSize = getBoxSize(font);
-        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, this.getX(), this.getY(), boxSize, boxSize, ARGB.white(this.alpha));
+        if (this.selected) {
+
+            tempcol1 = this.isFocused() ? col1b : col1;
+            tempcol2 = this.isFocused() ? col2b : col2;
+
+        } else {
+            tempcol1 = bdr2;
+            tempcol2 = bdr1;
+        }
+        int boxSize = getBoxSize(font)-(bdr*2);
+        FigBox box = new FigBox(this.getX(), this.getY(), boxSize, boxSize, tempcol1, tempcol2);
+        FigBox border = new FigBox(this.getX()-bdr, this.getY()-bdr, boxSize+bdr, boxSize+bdr, bdr2, bdr1);
+        border.extractWidgetRenderState(graphics, mouseX, mouseY, a);
+        box.extractWidgetRenderState(graphics, mouseX, mouseY, a);
         int textX = this.getX() + boxSize + 4;
         int textY = this.getY() + boxSize / 2 - this.textWidget.getHeight() / 2;
         this.textWidget.setPosition(textX, textY);
