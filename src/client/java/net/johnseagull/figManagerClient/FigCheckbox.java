@@ -124,16 +124,17 @@ public class FigCheckbox extends AbstractButton {
 
         if (this.selected) {
 
-            tempcol1 = this.isFocused() ? col1b : col1;
-            tempcol2 = this.isFocused() ? col2b : col2;
+            tempcol1 = this.isHovered() ? col1b : col1;
+            tempcol2 = this.isHovered() ? col2b : col2;
 
         } else {
             tempcol1 = bdr2;
             tempcol2 = bdr1;
         }
         int boxSize = getBoxSize(font)-(bdr*2);
-        FigBox box = new FigBox(this.getX(), this.getY(), boxSize, boxSize, tempcol1, tempcol2);
+
         FigBox border = new FigBox(this.getX()-bdr, this.getY()-bdr, boxSize+bdr, boxSize+bdr, bdr2, bdr1);
+        FigBox box = new FigBox(this.getX(), this.getY(), boxSize-bdr, boxSize-bdr, tempcol1, tempcol2);
         border.extractWidgetRenderState(graphics, mouseX, mouseY, a);
         box.extractWidgetRenderState(graphics, mouseX, mouseY, a);
         int textX = this.getX() + boxSize + 4;

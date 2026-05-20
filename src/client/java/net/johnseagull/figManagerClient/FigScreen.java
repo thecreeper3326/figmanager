@@ -83,7 +83,6 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
                     int widthOfTheWidgetw = (int) (w * t.ratio);
                     int wc = 1;
                     int wx;
-                    int wr = y;
 
                     List<String> tc = t.value;
                     for (String s : tc) {
@@ -94,8 +93,7 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
                                 try {
                                     Field v = FigManager.FIGS.getClass().getField(s);
                                     Object vv = v.get(FigManager.FIGS);
-                                    EditBox box;
-                                    StringWidget label = null;
+                                    StringWidget label;
                                     if (vv instanceof Fig k ) {
                                         if (t.hL) {
                                             label = new StringWidget(wx + (widthOfTheWidgetw + 5), y + 22, w - widthOfTheWidgetw - 5, 20, Component.literal(k.name), font);
@@ -104,60 +102,9 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
                                         }
                                         label.setTooltip(Tooltip.create(Component.literal(k.description)));
                                         this.addRenderableWidget(label);
-                                        if (k.widgetType.equals("box")) {
-                                            if (t.hL) {
-                                                box = new EditBox(font, wx, wr + 22, widthOfTheWidgetw, 20, Component.literal(k.dataType+f.getName()));
-                                            } else {
-                                                box = new EditBox(font, wx, y + 44, min(w -10, width-20), 20, Component.literal(k.dataType+f.getName()));
-                                            }
-                                            box.setMaxLength(1024);
-                                           
 
-                                            this.addRenderableWidget(box);
-                                        } else {
-                                            box = null;
-                                        }
-                                    } else {
-                                        box = null;
+                                        addWidget(f.getName(),k,wx,y+22,widthOfTheWidgetw,20);
                                     }
-
-                                    if (vv instanceof Fig.IntFig k) {
-                                        k.inGroup = true;
-                                        assert box != null;
-                                        box.setValue(String.valueOf(k.value));
-                                        setResponder(box,"int",k.min,k.max,f.getName());
-                                        coolListOfOptionWidgets.add((T) box);
-                                    }
-                                    if (vv instanceof Fig.FloatFig k) {
-                                        k.inGroup = true;
-                                        assert box != null;
-                                        box.setValue(String.valueOf(k.value));
-                                        setResponder(box,"float",k.min,k.max,f.getName());
-                                        coolListOfOptionWidgets.add((T) box);
-
-                                    }
-                                    if (vv instanceof Fig.BooleanFig k) {
-                                        k.inGroup = true;
-                                        FigCheckbox toggle;
-                                        toggle = FigCheckbox.builder(Component.literal(f.getName()), font).selected(k.value).maxWidth(widthOfTheWidgetw - 5).build();
-                                        toggle.setX(wx);
-                                        if (t.hL) {
-                                            toggle.setY(y + 22);
-                                        } else {
-                                            toggle.setY(y + 44);
-                                        }
-                                        toggle.w = widthOfTheWidgetw;
-                                        coolListOfOptionWidgets.add((T) toggle);
-                                        this.addRenderableWidget(toggle);
-                                    }
-                                    if (vv instanceof Fig.StringFig k) {
-                                        k.inGroup = true;
-                                        assert box != null;
-                                        box.setValue(k.value);
-                                        setResponder(box,"string",0,k.max,f.getName());
-                                        coolListOfOptionWidgets.add((T) box);
-                                    }
-
                                 } catch (Exception e) {
                                     clientLogger.debug(e.getMessage());
                                 }
@@ -179,14 +126,12 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
                                 amountOfWidgetsOnScreen++;
                             }
                         }
-                        wr = y;
                         wx = 5 + (wc - 1) * w;
                     }
                     if (wc > 1) {
                         y += 22;
                         amountOfWidgetsOnScreen++;
                     }
-                    wr = y;
 
 
                 }
@@ -212,60 +157,12 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
                         amountOfWidgetsOnScreen++;
                     }
                 }
-                if (value instanceof Fig.IntFig t) {
-                    if (field.getType() == Fig.IntFig.class && !t.inGroup) {
-                        y += 22;
-                        EditBox box = new EditBox(font, x, y, round(widthOfTheWidget), 20, Component.literal(field.getName()));
-                        box.setValue(String.valueOf(t.value));
-                        box.setMessage(Component.literal(t.dataType+field.getName()));
-                        setResponder(box,"int",t.min,t.max,field.getName());
-                        coolListOfOptionWidgets.add((T) box);
-                        this.addRenderableWidget(box);
-                        amountOfWidgetsOnScreen++;
-                        addLabel(t,y);
-                    }
+                if (value instanceof Fig t && !t.rendered) {
+                    y+=22;
+                    addWidget(field.getName(),t,x,y,widthOfTheWidget,20);
+                    addLabel(t,y);
                 }
-                if (value instanceof Fig.FloatFig t) {
-                    if (field.getType() == Fig.FloatFig.class && !t.inGroup) {
-                        y += 22;
-                        EditBox box = new EditBox(font, x, y, round(widthOfTheWidget), 20, Component.literal(field.getName()));
-                        box.setValue(String.valueOf(t.value));
-                        box.setMessage(Component.literal(t.dataType+field.getName()));
-                        setResponder(box,"float",t.min,t.max,field.getName());
-                        coolListOfOptionWidgets.add((T) box);
-                        this.addRenderableWidget(box);
-                        amountOfWidgetsOnScreen++;
-                        addLabel(t,y);
-                    }
-                }
-                if (value instanceof Fig.BooleanFig t) {
-                    if (!t.inGroup) {
-                        y += 22;
-                        FigCheckbox toggle = FigCheckbox.builder(Component.literal(field.getName()), font).selected(t.value).build();
-                        toggle.setX(x);
-                        toggle.setY(y);
-                        toggle.w = widthOfTheWidget;
-                        coolListOfOptionWidgets.add((T) toggle);
-                        this.addRenderableWidget(toggle);
 
-                        addLabel(t,y);
-                        amountOfWidgetsOnScreen++;
-                    }
-                }
-                if (value instanceof Fig.StringFig t) {
-                    if (!t.inGroup) {
-                        y += 22;
-                        EditBox box = new EditBox(font, x, y, round(widthOfTheWidget), 20, Component.literal(field.getName()));
-                        box.setMaxLength(1024);
-                        box.setValue(t.value);
-                        setResponder(box,"string",0,t.max,field.getName());
-                        box.setMessage(Component.literal(t.dataType+field.getName()));
-                        this.addRenderableWidget(box);
-                        coolListOfOptionWidgets.add((T) box);
-                        addLabel(t,y);
-                        amountOfWidgetsOnScreen++;
-                    }
-                }
                 {
                     //map + list figs are a work in progress and are super broken at the moment
                 }
@@ -463,9 +360,8 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
                             }
                         } else {
                             box.setTextColor(0xFFFFFFFF);
-                            if (thingsKeepingYouFromSaving.contains(name)) {
-                                thingsKeepingYouFromSaving.add(name);
-                            }
+                            thingsKeepingYouFromSaving.remove(name);
+
                         }
                     });
                 }
@@ -475,11 +371,57 @@ public class FigScreen<T extends AbstractWidget & Renderable> extends Screen {
             }
         });
     }
+
+    public void addWidget(String name, Fig fig, int x, int y, int w, int h) {
+        if (!fig.rendered) {
+            if (fig.widgetType.equals("box")) {
+
+                EditBox box = new EditBox(font, x, y, w, h, Component.literal(name));
+                box.setMessage(Component.literal(fig.dataType + name));
+                box.setMaxLength(1024);
+                if (fig.dataType.equals("int_")) {
+                    Fig.IntFig t = (Fig.IntFig) fig;
+                    box.setValue(String.valueOf(t.value));
+                    setResponder(box, "int", t.min, t.max, name);
+                    coolListOfOptionWidgets.add((T) box);
+                }
+                if (fig.dataType.equals("float_")) {
+                    Fig.FloatFig t = (Fig.FloatFig) fig;
+                    box.setValue(String.valueOf(t.value));
+                    box.setMessage(Component.literal(t.dataType + name));
+                    setResponder(box, "float", t.min, t.max, name);
+                    coolListOfOptionWidgets.add((T) box);
+                }
+                if (fig.dataType.equals("string_")) {
+                    assert fig instanceof Fig.StringFig;
+                    Fig.StringFig t = (Fig.StringFig) fig;
+                    box.setValue(t.value);
+                    setResponder(box,"string",0,t.max,name);
+                    box.setMessage(Component.literal(t.dataType+name));
+                    coolListOfOptionWidgets.add((T) box);
+                }
+                this.addRenderableWidget(box);
+                fig.rendered = true;
+            }
+            if (fig.widgetType.equals("check")) {
+                Fig.BooleanFig t = (Fig.BooleanFig) fig;
+                FigCheckbox toggle = FigCheckbox.builder(Component.literal(name), font).selected(t.value).build();
+                toggle.setX(x);
+                toggle.setY(y+5);
+                toggle.w = w;
+                toggle.col1 = 0xFFA0A0A0; toggle.col2 = 0xFF505050; toggle.bdr1 = 0xFF151515; toggle.bdr2 = 0xFF000000;
+                coolListOfOptionWidgets.add((T) toggle);
+                this.addRenderableWidget(toggle);
+            }
+            amountOfWidgetsOnScreen++;
+        }
+    }
     public void addLabel(Fig t, int y) {
         StringWidget label = new StringWidget(round(widthOfTheWidget) + 10, y, width - round(widthOfTheWidget) - 30, 20, Component.literal(t.name), font);
         label.setTooltip(Tooltip.create(Component.literal(t.description)));
         this.addRenderableWidget(label);
     }
+
     public void save(List<T> options) throws IllegalAccessException {
         Field[] fields = FigManager.FIGS.getClass().getDeclaredFields();
         for (T option : options) {
