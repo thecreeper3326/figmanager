@@ -12,16 +12,16 @@ import java.util.Map;
  * Standard Fig object type. <br>
  * Includes basic details such: <br>as a human-readable name<br>
  * a short description<br>
- * an inGroup flag to determine how its rendered<br>
+ * an rendered flag to determine how its rendered<br>
  * an identifier that will automatically be set to the Fig's field name. Used for internal saving and data handling<br><br>
  * all Fig types must extend this class in order to be detected/processed correctly
  * */
 public class Fig {
     //generic properties for other figs
     public String name = "";
-    public String widgetType = "";
+    public String widgetType = ""
     public String description = "";
-    public Boolean inGroup = false;
+    public Boolean rendered = false;
     public String id = "";
     public String dataType = "";
     //can be used to quickly store custom data so i dont have to rewrite the classes
