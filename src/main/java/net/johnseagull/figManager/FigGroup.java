@@ -1,5 +1,6 @@
 package net.johnseagull.figManager;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -7,6 +8,7 @@ import java.util.List;
  */
 public class FigGroup {
     public List<String> value;
+    public List<Fig> figs;
     public int columns;
     public boolean showDesc = false;
     public boolean hL;
@@ -21,6 +23,7 @@ public class FigGroup {
     public FigGroup(List<String> value, int columns, boolean horizontalLayout, float ratio) {
 
         this.columns = columns;
+
         this.value = value;
         this.hL = horizontalLayout;
         this.ratio = ratio;

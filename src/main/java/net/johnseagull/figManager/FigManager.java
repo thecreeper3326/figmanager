@@ -1,17 +1,9 @@
 package net.johnseagull.figManager;
 
-import com.google.common.reflect.TypeToken;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.permissions.Permissions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -20,24 +12,25 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.nio.file.Files.readAllBytes;
-import static org.apache.logging.log4j.core.util.ReflectionUtil.setFieldValue;
 
 /**
  * Main server-side manager for interpreting incoming config packets, saving/loading, conversion, and validation.
  */
 public class FigManager {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("JohnSeagull FigManager");
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    public static Object FIGS;
-    public static Class<?> FIGCLASS;
-    public static String name = "";
-    public static String version = "";
-    public static Object getFigs () {
-        return FIGS;
-    }
+    public static final Logger LOGGER = LoggerFactory.getLogger("JohnSeagull FigManager");
+    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    public static  Object FIGS;
+    public static  Class<?> FIGCLASS;
+    public static  String name = "";
+    public static  String version = "";
+ 
+    public static  boolean exExists = false;
+    public static  String exName = "";
     /**
      * Saves the current configuration for the given project
      * @param projectName
@@ -52,6 +45,7 @@ public class FigManager {
             }
             LOGGER.info("Figs saved successfully.");
         } catch (Exception e) {
+            
             LOGGER.error("Failed to save figs :(");
             LOGGER.error(e.getMessage());
         }
@@ -133,8 +127,9 @@ public class FigManager {
                 return;
             }
             String json = new String(readAllBytes(file.toPath()));
-            FIGS = fromString(json, FIGCLASS);
-
+            Object temp = fromString(json, FIGCLASS);
+            assert temp != null;
+            FIGS = temp;
             LOGGER.info("Figs loaded successfully!");
         } catch (Exception e) {
             LOGGER.error("Failed to load figs :(");
@@ -142,7 +137,22 @@ public class FigManager {
         }
     }
 
+    public static void rebuildIDs() {
+        for (Field field : FIGS.getClass().getDeclaredFields()) {
+            try {
+                field.setAccessible(true);
+                Object o = field.get(FIGS);
+                if (o instanceof Fig f) {
+                    f.id = field.getName();
+                }
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
 
+            }
+
+        }
+
+    }
     /**
      * Initializes an instance of FigManager for any mod
      * @param projectName name of the mod that is being loaded; will be used for config directory and config screen
@@ -151,88 +161,45 @@ public class FigManager {
      * */
     public void init(String projectName,String projectVersion, Object figs) {
 
-        LOGGER.info("Initializing figs for project: " + projectName + " v"+ projectVersion);
+        LOGGER.info("Initializing FigManager for project: " + projectName + " v"+ projectVersion);
         name = projectName;
         version = projectVersion;
-
         FIGS = figs;
-
         FIGCLASS = figs.getClass();
-
-
+        rebuildIDs();
+        try {
+            Method ex = this.getClass().getMethod("extension");
+            if (!ex.getDeclaringClass().equals(FigManager.class)) {
+                exExists =true;
+                LOGGER.info("Found extension method. Attempting to load...");
+            }
+        } catch (NoSuchMethodException ignored) {}
+        if (exExists) {
+            extension();
+            if(exName.equals("")) {
+                LOGGER.info("Extension loaded successfully!");
+            } else  {
+                LOGGER.info("Extension \""+exName+"\" loaded successfully!");
+            }
+        }
         File infoFile = new File("config/" + projectName + "/info.txt");
         if (!infoFile.exists()) {
             genInfo();
         }
         load(name);
-        try {
-            Method initMethod = figs.getClass().getDeclaredMethod("init");
-            initMethod.setAccessible(true);
-            LOGGER.info("Found initialization method in Figs for " + projectName + ". Executing...");
-            initMethod.invoke(figs);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException _) {
-            LOGGER.info("Could not find initialization method in Figs for " + projectName + ". Ignoring...");
-        }
-        for (Field field : FIGS.getClass().getFields()) {
-            try {
-                Object o = field.get(FIGS);
-                if (o instanceof Fig f) {
-                    f.id = field.getName();
 
-                }
-
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            }
+        List<Object> temp = validate(FIGS);
+        FIGS = temp.get(0);
+        for (String e : (List<String>)temp.get(2)) {
+            LOGGER.error(e);
         }
 
-        PayloadTypeRegistry.serverboundPlay().register(FigPacket.ID, FigPacket.CODEC);
-        PayloadTypeRegistry.clientboundPlay().register(FigPacket.ID, FigPacket.CODEC);
-        ServerPlayNetworking.registerGlobalReceiver(FigPacket.ID, (payload, context) -> {
-            context.server().execute(() -> {
-                LOGGER.warn("Received figs from client "+ context.player().getPlainTextName()+". Verifying...");
-                if (context.player().permissions().hasPermission(Permissions.COMMANDS_MODERATOR)) {
-                    List<Object> e = validate(fromString(payload.figs(),FIGCLASS));
 
-                    int errors = (int) e.get(1);
-                    List<String> errorList = (List<String>) e.get(2);
-
-                    FIGS = e.get(0);
-                    if (errors != 0) {
-                        LOGGER.error(errors + " errors occured:");
-                        context.player().sendSystemMessage(Component.literal(errors + " options failed to process:").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
-                        for (String error : errorList) {
-                            context.player().sendSystemMessage(Component.literal(error).withStyle(ChatFormatting.RED));
-                            LOGGER.error(error);
-                        }
-                    } else {
-                        context.player().sendSystemMessage(Component.literal("Updated Figs for " + projectName + "."));
-                    }
-                    for (ServerPlayer player : context.server().getPlayerList().getPlayers()) {
-                        ServerPlayNetworking.send(player, new FigPacket(
-                                toString(FIGS)
-                        ));
-                    }
-
-
-                    LOGGER.warn("Figs for " + projectName + " were modified by " + context.player().getPlainTextName());
-
-                    FigManager.save(projectName);
-                } else {
-                    LOGGER.error(context.player().getPlainTextName() + " attempted to modify figs without permission!");
-                    context.player().sendSystemMessage(Component.literal("Failed to update figs, insufficient permissions"));
-                }
-            });
-        });
-        ServerPlayerEvents.JOIN.register(player -> {
-            ServerPlayNetworking.send(player,new FigPacket(
-                    toString(FIGS)
-            ));
-            LOGGER.info("Syncing figs for player " + player.getPlainTextName());
-        });
         LOGGER.info("Initialized for "+projectName);
     }
+    public void extension() {
 
+    }
     /**
      * Creates a JSON string from a Figs instance. It only includes values, all other metadata such as names and descriptions is redundant, so they are discarded and re-added when loadign from the String.
      * @param instance {@code Figs} instance to be converted
@@ -240,10 +207,10 @@ public class FigManager {
      */
     public static String toString(Object instance) {
         Map<String, Object> data = new LinkedHashMap<>();
-        for (Field field : instance.getClass().getFields()) {
+        for (Field field : instance.getClass().getDeclaredFields()) {
             try {
                 if (Modifier.isStatic(field.getModifiers())) continue;
-                if (field.getType()!= Fig.DividerFig.class && field.getType()!= FigGroup.class) {
+                if ( field.getType()!= FigGroup.class) {
 
                     Object figObj = field.get(instance);
 
@@ -266,6 +233,7 @@ public class FigManager {
      * @param figClass Template Fig Class
      * @return <code>Figs</code> instance
      */
+
     public static Object fromString(String figs, Class<?> figClass) {
         Object output;
         try {
@@ -284,7 +252,21 @@ public class FigManager {
                         Object figObj = field.get(output);
                         Field v = figObj.getClass().getField("value");
                         Object vv = data.get(field.getName());
-                        if (vv instanceof Number) {
+                        if (vv instanceof Map<?, ?> m) {
+                            Map<String, String> coolStringMap = new HashMap<>();
+                            for (Map.Entry<?, ?> entry : m.entrySet()) {
+                                if (entry.getKey() != null && entry.getValue() != null) {
+                                    coolStringMap.put(entry.getKey().toString(), entry.getValue().toString());
+                                }
+                            }
+                            v.set(figObj, coolStringMap);
+                        } else if (vv instanceof List<?> l) {
+                            List<String> stringList = new ArrayList<>();
+                            for (Object item : l) {
+                                if (item != null) stringList.add(item.toString());
+                            }
+                            v.set(figObj, stringList);
+                        } else if (vv instanceof Number) {
                             if (v.getType() == float.class) {
                                 v.set(figObj, ((Number) vv).floatValue());
                             } else if (v.getType() == int.class) {
@@ -298,7 +280,7 @@ public class FigManager {
                     } catch (Exception ignored) {}
                 }
             }
-        } catch (Exception _) {
+        } catch (Exception ignored) {
         }
 
         return output;
@@ -327,45 +309,84 @@ public class FigManager {
             if (Modifier.isStatic(field.getModifiers())) continue;
             try {
                 Object value = field.get(figs);
+                if (value instanceof Fig.MapFig f) {
+                    int max = f.maxLength;
+                    Map<String, String> map = f.value;
+                    if (map.size() > max) {
+                        invalid++;
+                        errors.add("Value of "+field.getName()+" is longer than "+max+" items.");
+                        while (map.size() > max) {
+                            map.remove(map.keySet().iterator().next());
+                        }
+                    }
+                    Iterator<Map.Entry<String, String>> iterator = map.entrySet().iterator();
+                    while (iterator.hasNext()) {
+                        Map.Entry<String, String> entry = iterator.next();
+                        String v = entry.getValue();
+                        if (f.itemType.equals("int")) {
+                            try {
+                                Integer.parseInt(v);
+                            } catch (NumberFormatException x) {
+                                invalid++;
+                                errors.add("Value of " + field.getName() + " is not an integer");
+                                iterator.remove();
+                            }
+                        }
+                        if (f.itemType.equals("float")) {
+                            try {
+                                Float.parseFloat(v);
+                            } catch (NumberFormatException x) {
+                                invalid++;
+                                errors.add("Value of " + field.getName() + " is not a float");
+                                iterator.remove();
+                            }
+                        }
+                        if (f.itemType.equals("boolean")) {
+                            if (v.equalsIgnoreCase("true") || v.equalsIgnoreCase("false")) {
 
-                if (value instanceof Fig.IntFig f) {
-                    if (field.getType() == Fig.IntFig.class) {
-                        int max = f.max;
-                        int min = f.min;
-                        if (f.value > max || f.value < min) {
-                            invalid += 1;
-                            errors.add("Invalid value of "+f.value+" for "+field.getName()+". Must be within "+min+" and "+ max +".");
-                            int clamped = Math.clamp(f.value, min, max);
-                            setFieldValue(field, figs, new Fig.IntFig(f.name,f.description,clamped,min,max));
-
+                            } else {
+                                invalid++;
+                                errors.add("Value of " + field.getName() + " is not a boolean");
+                                iterator.remove();
+                            }
                         }
                     }
                 }
+                if (value instanceof Fig.IntFig f) {
+                    int max = f.max;
+                    int min = f.min;
+                    if (f.value > max || f.value < min) {
+                        invalid += 1;
+                        errors.add("Invalid value of "+f.value+" for "+field.getName()+". Must be within "+min+" and "+ max +".");
+                        int clamped = Math.clamp(f.value, min, max);
+                        field.set(figs,new Fig.IntFig(f.name,f.description,clamped,min,max));
+;
+                    };
+
+                }
                 if (value instanceof Fig.FloatFig f) {
-                    if (field.getType() == Fig.FloatFig.class) {
-                        float min = f.min;
-                        float max = f.max;
-                        if (f.value > max || f.value < min) {
-                            invalid += 1;
-                            errors.add("Invalid value of "+f.value+" for "+field.getName()+". Must be within "+min+" and "+ max +".");
-                            float clamped = Math.clamp(f.value, min, max);
-                            setFieldValue(field, figs, new Fig.FloatFig(f.name,f.description,clamped,min,max));
-                        }
+                    float min = f.min;
+                    float max = f.max;
+                    if (f.value > max || f.value < min) {
+                        invalid += 1;
+                        errors.add("Invalid value of "+f.value+" for "+field.getName()+". Must be within "+min+" and "+ max +".");
+                        float clamped = Math.clamp(f.value, min, max);
+                        field.set(figs,new  Fig.FloatFig(f.name,f.description,clamped,min,max));
                     }
+
                 }
 
                 if (value instanceof Fig.StringFig f) {
-                    if (field.getType() == Fig.StringFig.class) {
-                        int max = f.max;
-                        if (f.value.length() > max) {
-                            setFieldValue(field, figs, new Fig.StringFig(f.name, f.description, f.value.substring(0, max), f.max));
-                            invalid++;
-                            errors.add("Value of \""+f.value+"\" for " + field.getName() + " was above character limit of " + max);
-                        }
+                    int max = f.max;
+                    if (f.value.length() > max) {
+                        field.set(figs,new Fig.StringFig(f.name,f.description,f.value.substring(max), f.max));
+                        invalid++;
+                        errors.add("Value of \""+f.value+"\" for " + field.getName() + " was above character limit of " + max);
                     }
+
                 }
             } catch (Exception f) {
-                FigManager.LOGGER.error("Error while trying to validate figs.", f);
+                FigManager.LOGGER.error("Error while trying to validate figs.");
             }
 
         }
@@ -373,6 +394,9 @@ public class FigManager {
         e.add(figs);
         e.add(invalid);
         e.add(errors);
+        for (String err : errors) {
+            LOGGER.error(err);
+        }
         return e;
     }
 }
